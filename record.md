@@ -8,7 +8,14 @@
     - .\bin\zkServer.cmd
 - grpc 编译选项：
     - ./gradlew -DsocksProxyHost=localhost -DsocksProxyPort=1080 installDist
-
+- zookeeper启动：
+    ```
+    .\zookeeper\zookeeper1\bin\zkServer.cmd
+    .\zookeeper\zookeeper2\bin\zkServer.cmd
+    .\zookeeper\zookeeper3\bin\zkServer.cmd
+    ```
+- zookeeper客户端：
+    `.\zookeeper\zookeeper1\bin\zkCli.cmd -server localhost:2181`
 
 - 错误
     - Failed to execute goal org.xolstice.maven.plugins:protobuf-maven-plugin:0.6.1:compile (default-cli) on project DistributedKV: protoc did not exit cleanly. Review output for more information.
