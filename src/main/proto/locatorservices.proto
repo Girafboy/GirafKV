@@ -14,40 +14,21 @@
 syntax = "proto3";
 
 option java_multiple_files = true;
-option java_package = "grpc.data";
-option java_outer_classname = "DataServicesProto";
+option java_package = "grpc.locator";
+option java_outer_classname = "LocatorServicesProto";
 option objc_class_prefix = "HLW";
 
-package dataservices;
+package locatorservices;
 
-service DataServices {
-  rpc Put (PutRequest) returns (PutResponse) {}
-  rpc Get (GetRequest) returns (GetResponse) {}
-  rpc Delete (DeleteRequest) returns (DeleteResponse) {}
+service LocatorServices {
+  rpc Locate (LocateRequest) returns (LocateResponse) {}
 }
 
-message PutRequest {
-  string key = 1;
-  string value = 2;
-}
-
-message PutResponse {
-  int32 status = 1;
-}
-
-message GetRequest {
+message LocateRequest {
   string key = 1;
 }
 
-message GetResponse {
+message LocateResponse {
   int32 status = 1;
-  string value = 2;
-}
-
-message DeleteRequest {
-  string key = 1;
-}
-
-message DeleteResponse {
-  int32 status = 1;
+  string address = 2;
 }

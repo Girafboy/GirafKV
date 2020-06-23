@@ -22,6 +22,7 @@
     - 是中文路径导致的问题，grpc对中文路径的支持并不友好……
     - 解决方案：管理员运行cmd.exe，执行`mklink /D "D:\program\DirtributeKV" D:\上海交通大学\大三下\分布式系统\Lab\DistributedKV`
 
+zookeeper不是一个用来做高并发高性能的数据库，zookeeper一般只用来存储配置信息。
 - Zookeeper中ZNode的节点类型:
     - PERSISTENT：持久化ZNode节点，一旦创建这个ZNode点存储的数据不会主动消失，除非是客户端主动的delete。
     - EPHEMERAL：临时ZNode节点，Client连接到Zookeeper Service的时候会建立一个Session，之后用这个Zookeeper连接实例创建该类型的znode，一旦Client关闭了Zookeeper的连接，服务器就会清除Session，然后这个Session建立的ZNode节点都会从命名空间消失。总结就是，这个类型的znode的生命周期是和Client建立的连接一样的。
@@ -41,4 +42,9 @@
 - MIT 6.824 动态扩缩容/负载均衡的强一致容灾K/V集群：https://zhuanlan.zhihu.com/p/51049133
 
 - 设计
-    - 
+
+- 问题：
+    1. 与zookeeper连接断开怎么办？轮流尝试每个zookeeper重复连接。
+    2. Client如何知道Master的位置？Master使用公开的知名IP:Port。
+    3. Master和Worker如何启动？master先启动和准备znode，worker等待master准备就绪再启动
+    4. master如何监控worker的地址？worker创建临时节点，master监控并在本地存储映射表，有新增的补充，有删除的丢弃。

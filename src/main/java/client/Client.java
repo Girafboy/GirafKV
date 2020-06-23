@@ -1,6 +1,9 @@
 package client;
 
-import grpc.*;
+import grpc.data.*;
+import grpc.locator.LocateRequest;
+import grpc.locator.LocateResponse;
+import grpc.locator.LocatorServicesGrpc;
 import io.grpc.Channel;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -14,14 +17,14 @@ import java.util.logging.Logger;
 public class Client implements KVOps {
     private static final Logger logger = Logger.getLogger(Client.class.getName());
 
-    private final DataServicesGrpc.DataServicesBlockingStub blockingStub;
+    private final LocatorServicesGrpc.LocatorServicesBlockingStub locatorServicesBlockingStub;
 
     public Client(Channel channel) {
-        blockingStub = DataServicesGrpc.newBlockingStub(channel);
+        locatorServicesBlockingStub = LocatorServicesGrpc.newBlockingStub(channel);
     }
 
     public static void main(String[] args) throws Exception {
-        String target = "localhost:50051";
+        String target = "127.0.0.1:23333";
         if (args.length > 0) {
             if ("--help".equals(args[0])) {
                 System.err.println("Usage: [name [target]]");
@@ -48,12 +51,37 @@ public class Client implements KVOps {
         }
     }
 
+    public String locate(Key key) {
+        logger.info("Locate " + key);
+        LocateRequest request = LocateRequest.newBuilder().setKey(key.toString()).build();
+        LocateResponse response;
+        try {
+            response = locatorServicesBlockingStub.locate(request);
+        } catch (StatusRuntimeException e) {
+            logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+            return null;
+        }
+
+        if (response.getStatus() != 1) {
+            logger.info("Not Found: " + response.getStatus());
+            return null;
+        }
+        logger.info("Locate: " + key + " -> " + response.getAddress());
+        return response.getAddress();
+    }
+
     public Value get(Key key) {
+        DataServicesGrpc.DataServicesBlockingStub dataServicesBlockingStub =
+                DataServicesGrpc.newBlockingStub(
+                        ManagedChannelBuilder.forTarget(locate(key))
+                                .usePlaintext()
+                                .build());
+
         logger.info("Get " + key);
         GetRequest request = GetRequest.newBuilder().setKey(key.toString()).build();
         GetResponse response;
         try {
-            response = blockingStub.get(request);
+            response = dataServicesBlockingStub.get(request);
         } catch (StatusRuntimeException e) {
             logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
             return new StringValue("");
@@ -68,11 +96,17 @@ public class Client implements KVOps {
     }
 
     public Boolean put(Key key, Value value) {
+        DataServicesGrpc.DataServicesBlockingStub dataServicesBlockingStub =
+                DataServicesGrpc.newBlockingStub(
+                        ManagedChannelBuilder.forTarget(locate(key))
+                                .usePlaintext()
+                                .build());
+
         logger.info("Put " + key + " " + value);
         PutRequest request = PutRequest.newBuilder().setKey(key.toString()).setValue(value.toString()).build();
         PutResponse response;
         try {
-            response = blockingStub.put(request);
+            response = dataServicesBlockingStub.put(request);
         } catch (StatusRuntimeException e) {
             logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
             return false;
@@ -88,11 +122,17 @@ public class Client implements KVOps {
     }
 
     public Boolean delete(Key key) {
+        DataServicesGrpc.DataServicesBlockingStub dataServicesBlockingStub =
+                DataServicesGrpc.newBlockingStub(
+                        ManagedChannelBuilder.forTarget(locate(key))
+                                .usePlaintext()
+                                .build());
+
         logger.info("Delete " + key);
         DeleteRequest request = DeleteRequest.newBuilder().setKey(key.toString()).build();
         DeleteResponse response;
         try {
-            response = blockingStub.delete(request);
+            response = dataServicesBlockingStub.delete(request);
         } catch (StatusRuntimeException e) {
             logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
             return false;

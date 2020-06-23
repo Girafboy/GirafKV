@@ -1,37 +1,60 @@
 package server;
 
-import example.ZooKeeperHello;
+import io.grpc.BindableService;
+import io.grpc.ServerBuilder;
 import org.apache.zookeeper.*;
-import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
-public class Server {
+public abstract class Server implements Watcher {
+    private io.grpc.Server server;
+    protected ZooKeeper zooKeeper;
+    private String ip;
+    private int port;
 
-    // Args: address
-    public static void main(String[] args) throws IOException, InterruptedException, KeeperException {
-        if(args.length != 1){
-            System.out.println("Args: address");
-        }
-        ZooKeeper zk = new ZooKeeper(args[0], 3000, new Server.DemoWatcher());
-        String node = "/app1";
-        Stat stat = zk.exists(node, false);
-        if (stat == null) {
-            String createResult = zk.create(node, "test".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-            System.out.println(createResult);
-        }
-        byte[] b = zk.getData(node, false, stat);
-        System.out.println(new String(b));
-        zk.close();
+    public Server(String ip, int port) {
+        this.ip = ip;
+        this.port = port;
     }
 
-    static class DemoWatcher implements Watcher {
-        public void process(WatchedEvent event) {
-            System.out.println("----------->");
-            System.out.println("path:" + event.getPath());
-            System.out.println("type:" + event.getType());
-            System.out.println("stat:" + event.getState());
-            System.out.println("<-----------");
+    protected void start(int port, BindableService service) throws IOException {
+        server = ServerBuilder.forPort(port)
+                .addService(service)
+                .build()
+                .start();
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                // Use stderr here since the logger may have been reset by its JVM shutdown hook.
+                System.err.println("*** shutting down gRPC server since JVM is shutting down");
+                try {
+                    Server.this.stop();
+                } catch (InterruptedException e) {
+                    e.printStackTrace(System.err);
+                }
+                System.err.println("*** server shut down");
+            }
+        });
+    }
+
+    private void stop() throws InterruptedException {
+        if (server != null) {
+            server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
         }
+    }
+
+    protected void blockUntilShutdown() throws InterruptedException {
+        if (server != null) {
+            server.awaitTermination();
+        }
+    }
+
+    protected void connectZooKeeper(String address) throws IOException {
+        zooKeeper = new ZooKeeper(address, 30000, this);
+    }
+
+    public String getAddress() {
+        return ip + ":" + port;
     }
 }

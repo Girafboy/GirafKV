@@ -1,11 +1,14 @@
 package server.dataserver;
 
 import example.grpc.HelloWorldServer;
-import grpc.*;
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
+import grpc.data.*;
 import io.grpc.stub.StreamObserver;
-import sun.awt.SunHints;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.data.Stat;
+import server.Server;
 import util.DataProvider;
 import util.StringKey;
 import util.StringValue;
@@ -15,52 +18,64 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-public class Primary {
-    private static final Logger logger = Logger.getLogger(HelloWorldServer.class.getName());
-    private Server server;
+public class Primary extends Server {
+    private static final Logger logger = Logger.getLogger(Primary.class.getName());
+    private final DataProvider dataProvider = new DataProvider();
 
-    private void start() throws IOException {
-        int port = 50051;
-        server = ServerBuilder.forPort(port)
-                .addService(new DataServicesImpl())
-                .build()
-                .start();
-        logger.info("Server started, listening on " + port);
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                // Use stderr here since the logger may have been reset by its JVM shutdown hook.
-                System.err.println("*** shutting down gRPC server since JVM is shutting down");
-                try {
-                    Primary.this.stop();
-                } catch (InterruptedException e) {
-                    e.printStackTrace(System.err);
-                }
-                System.err.println("*** server shut down");
+    public Primary(String ip, int port) {
+        super(ip, port);
+    }
+
+    public static void main(String[] args) throws IOException, InterruptedException, KeeperException {
+        final Primary server = new Primary("127.0.0.1", 50051);
+        server.connectZooKeeper("127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183");
+        logger.info("ZooKeeper connected");
+        Stat stat = server.zooKeeper.exists("/workers", true);
+        if(stat == null){
+            synchronized (server){
+                server.wait();
             }
-        });
-    }
-
-    private void stop() throws InterruptedException {
-        if (server != null) {
-            server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
         }
-    }
+        server.zooKeeper.create("/workers/worker", server.getAddress().getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
 
-    private void blockUntilShutdown() throws InterruptedException {
-        if (server != null) {
-            server.awaitTermination();
-        }
-    }
-
-    public static void main(String[] args) throws IOException, InterruptedException {
-        final Primary server = new Primary();
-        server.start();
+        server.start(50051, new DataServicesImpl(server.dataProvider));
+        logger.info("RPC Server started, listening on " + 50051);
         server.blockUntilShutdown();
     }
 
+    @Override
+    public void process(WatchedEvent watchedEvent) {
+        System.out.println(watchedEvent);
+        if (watchedEvent.getType() == Event.EventType.None) {
+            // We are are being told that the state of the
+            // connection has changed
+            switch (watchedEvent.getState()) {
+                case SyncConnected:
+                    // In this particular example we don't need to do anything
+                    // here - watches are automatically re-registered with
+                    // server and any watches triggered while the client was
+                    // disconnected will be delivered (in order of course)
+                    break;
+                case Expired:
+                    // It's all over
+                    // TODO
+                    break;
+            }
+        } else {
+            if ("/workers".equals(watchedEvent.getPath())) {
+                synchronized (this){
+                    this.notifyAll();
+                }
+            }
+        }
+    }
+
     static class DataServicesImpl extends DataServicesGrpc.DataServicesImplBase {
-        private final DataProvider dataProvider = new DataProvider();
+        private final DataProvider dataProvider;
+
+        public DataServicesImpl(DataProvider dataProvider) {
+            this.dataProvider = dataProvider;
+        }
 
         @Override
         public void put(PutRequest request, StreamObserver<PutResponse> responseObserver) {
@@ -99,5 +114,4 @@ public class Primary {
             responseObserver.onCompleted();
         }
     }
-
 }
