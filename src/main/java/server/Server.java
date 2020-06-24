@@ -18,7 +18,7 @@ public abstract class Server implements Watcher {
         this.port = port;
     }
 
-    protected void start(int port, BindableService service) throws IOException {
+    protected void start(BindableService service) throws IOException {
         server = ServerBuilder.forPort(port)
                 .addService(service)
                 .build()
@@ -51,7 +51,7 @@ public abstract class Server implements Watcher {
     }
 
     protected void connectZooKeeper(String address) throws IOException {
-        zooKeeper = new ZooKeeper(address, 30000, this);
+        zooKeeper = new ZooKeeper(address, 15000, this);
     }
 
     public String getAddress() {

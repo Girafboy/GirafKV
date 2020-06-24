@@ -40,11 +40,24 @@ zookeeper不是一个用来做高并发高性能的数据库，zookeeper一般�
 - 分布式存储架构：https://zhuanlan.zhihu.com/p/55964292
 - 分布式存储架构：https://zhuanlan.zhihu.com/p/27666295
 - MIT 6.824 动态扩缩容/负载均衡的强一致容灾K/V集群：https://zhuanlan.zhihu.com/p/51049133
+- Zookeeper服务发现：https://crossoverjie.top/2018/08/27/distributed/distributed-discovery-zk/
+- 一致性哈希数据划分：https://zhuanlan.zhihu.com/p/37924185
+- 数据迁移：https://cloud.tencent.com/developer/news/180072
 
 - 设计
+    - 可用性：client加缓存
+    - 可拓展性：改良的一致性哈希
+    - 性能：
 
 - 问题：
     1. 与zookeeper连接断开怎么办？轮流尝试每个zookeeper重复连接。
     2. Client如何知道Master的位置？Master使用公开的知名IP:Port。
     3. Master和Worker如何启动？master先启动和准备znode，worker等待master准备就绪再启动
     4. master如何监控worker的地址？worker创建临时节点，master监控并在本地存储映射表，有新增的补充，有删除的丢弃。
+    5. /workers应该是临时的吗？如果master断开，所有的worker都要重新注册//TODO
+    6. 数据如何划分？虚拟槽分区（改进的一致性哈希），划分会更加均匀。
+    7. 如何进行数据迁移？懒加载，可用性保证（原子迁移：先迁移，再重定向，后删除//TODO，期间禁止写/双写）//TODO
+    8. 数据迁移以多大粒度进行？以Slot为粒度进行KV的存储
+    9. 冷启动如何分配数据？单独发送rpc要求直接负责所有slot，不需要问其他人获取数据
+    10. rpc通道连接多久？client与master是长连接，其他连接完成后立即关闭
+    11. zookeeper连接与rpc服务启动的前后顺序？先启动rpc服务，再连接向zookeeper报告自己启动完成
