@@ -91,14 +91,21 @@ public class Client implements KVOps {
                         break;
                 }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         } finally {
             channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
         }
     }
 
-    public String locate(Key key) {
+    public String locate(Key key, Boolean isWrite) {
         logger.info("Locate " + key);
-        LocateRequest request = LocateRequest.newBuilder().setKey(key.toString()).build();
+        LocateRequest request;
+        if (isWrite) {
+            request = LocateRequest.newBuilder().setKey(key.toString()).setIsWrite(1).build();
+        } else {
+            request = LocateRequest.newBuilder().setKey(key.toString()).setIsWrite(0).build();
+        }
         LocateResponse response;
         try {
             response = locatorServicesBlockingStub.locate(request);
@@ -117,7 +124,7 @@ public class Client implements KVOps {
 
     public Value get(Key key) {
         GetResponse response = (GetResponse) RpcCall.oneTimeRpcCall(
-                locate(key),
+                locate(key, false),
                 DataServicesGrpc.class,
                 (RpcCallInterface<DataServicesGrpc.DataServicesBlockingStub, GetResponse>) stub -> {
                     logger.info("Get " + key);
@@ -137,7 +144,7 @@ public class Client implements KVOps {
 
     public Boolean put(Key key, Value value) {
         PutResponse response = (PutResponse) RpcCall.oneTimeRpcCall(
-                locate(key),
+                locate(key, true),
                 DataServicesGrpc.class,
                 (RpcCallInterface<DataServicesGrpc.DataServicesBlockingStub, PutResponse>) stub -> {
                     logger.info("Put " + key + " " + value);
@@ -158,7 +165,7 @@ public class Client implements KVOps {
 
     public Boolean delete(Key key) {
         DeleteResponse response = (DeleteResponse) RpcCall.oneTimeRpcCall(
-                locate(key),
+                locate(key, true),
                 DataServicesGrpc.class,
                 (RpcCallInterface<DataServicesGrpc.DataServicesBlockingStub, DeleteResponse>) stub -> {
                     logger.info("Delete " + key);

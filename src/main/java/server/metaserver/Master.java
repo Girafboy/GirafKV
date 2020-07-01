@@ -37,6 +37,7 @@ public class Master extends Server {
     }
 
     private void updateWorkers() {
+        groupManager.clear();
         for (String groupId :
                 zooKeeper.getChildren("/secondary", true)) {
             for (Map.Entry<String, String> entry :
@@ -64,7 +65,7 @@ public class Master extends Server {
         server.connectZooKeeper("127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183");
         logger.info("ZooKeeper connected");
 
-        server.start(new LocatorServicesImpl(server.taskPartition));
+        server.start(new LocatorServicesImpl(server.taskPartition, server.groupManager));
         logger.info("RPC Server started, listening on " + 23333);
 
         server.register();

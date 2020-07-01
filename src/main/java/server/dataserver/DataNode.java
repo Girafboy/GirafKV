@@ -46,7 +46,7 @@ public class DataNode extends Server {
 
     private void runForPrimary() {
         // 竞选
-        zooKeeper.create("/primary/" + groupId, getAddress(), CreateMode.EPHEMERAL);
+        zooKeeper.create("/primary/" + groupId, getAddress(), CreateMode.EPHEMERAL, false);
 
         // 读取竞选结果
         addressManager.setPrimaryAddress(zooKeeper.getData("/primary/" + groupId, true, null));
@@ -104,7 +104,7 @@ public class DataNode extends Server {
         final String ip = args[0];
         final int port = Integer.parseInt(args[1]);
 
-        final DataNode server = new DataNode(ip, 50051, 1);
+        final DataNode server = new DataNode(ip, 50053, 1);
         server.connectZooKeeper("127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183");
         logger.info("ZooKeeper connected");
 

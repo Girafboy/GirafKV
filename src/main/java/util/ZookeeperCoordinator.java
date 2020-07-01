@@ -66,6 +66,17 @@ public class ZookeeperCoordinator implements Coordinator {
         return "";
     }
 
+    public String create(String path, String data, CreateMode createMode, Boolean printException) {
+        try {
+            return zooKeeper.create(path, data.getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, createMode);
+        } catch (KeeperException | InterruptedException e) {
+            if (printException){
+                e.printStackTrace();
+            }
+        }
+        return "";
+    }
+
     public List<String> getChildren(String path, Boolean watch) {
         try {
             return zooKeeper.getChildren(path, watch);

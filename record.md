@@ -47,6 +47,7 @@ zookeeper不是一个用来做高并发高性能的数据库，zookeeper一般�
 - MIT 6.824：https://zhuanlan.zhihu.com/p/51049133
 - 备份同步：https://www.cnblogs.com/glacierh/p/5734200.html
 - redis主从复制：http://daoluan.net/redis-source-notes/redis-nei-gong-xin-fa/zhu-cong-fu-zhi.html
+- 2PC: https://juejin.im/post/5ea1234be51d4547106e1d13
 
 - 设计
     - 可用性：client加缓存

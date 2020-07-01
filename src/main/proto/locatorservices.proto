@@ -26,6 +26,7 @@ service LocatorServices {
 
 message LocateRequest {
   string key = 1;
+  int32 isWrite = 2;
 }
 
 message LocateResponse {

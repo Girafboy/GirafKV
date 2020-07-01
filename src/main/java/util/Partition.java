@@ -7,7 +7,7 @@ public interface Partition {
         return key.hashCode() % numOfVirtualNode;
     }
 
-    String getPartition(Key key);
+    Integer getPartition(Key key);
     Boolean addPartition(String address, Integer groupId);
     Boolean changePartition(String address, Integer groupId);
     Boolean containGroupId(Integer groupId);

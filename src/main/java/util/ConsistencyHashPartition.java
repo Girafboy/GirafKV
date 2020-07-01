@@ -23,8 +23,8 @@ public class ConsistencyHashPartition implements Partition {
     }
 
     @Override
-    public String getPartition(Key key) {
-        return groupIdPrimaryMap.get(slotRing[Math.abs(key.hashCode()) % numOfVirtualNode]);
+    public Integer getPartition(Key key) {
+        return slotRing[Math.abs(key.hashCode()) % numOfVirtualNode];
     }
 
     @Override
@@ -106,9 +106,9 @@ public class ConsistencyHashPartition implements Partition {
 
     @Override
     public Boolean changePartition(String address, Integer groupId) {
-        logger.info("changePartition " + address + " " + groupId);
         // 修改Group中的Primary
-        if (groupIdPrimaryMap.containsKey(groupId)) {
+        if (groupIdPrimaryMap.containsKey(groupId) && !groupIdPrimaryMap.get(groupId).equals(address)) {
+            logger.info("changePartition " + address + " " + groupId);
             groupIdPrimaryMap.put(groupId, address);
             return true;
         }
