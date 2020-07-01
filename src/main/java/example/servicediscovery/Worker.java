@@ -69,7 +69,7 @@ public class Worker implements Watcher {
         }
     };
     synchronized  private void updateStatus(String status){
-        if(status==this.status){
+        if(status.equals(this.status)){
             name = "worker-" + serverId;
             zooKeeper.setData("/workers/"+name,status.getBytes(),-1,statCallback,status);
         }

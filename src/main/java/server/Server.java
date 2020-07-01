@@ -3,13 +3,14 @@ package server;
 import io.grpc.BindableService;
 import io.grpc.ServerBuilder;
 import org.apache.zookeeper.*;
+import util.ZookeeperCoordinator;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public abstract class Server implements Watcher {
-    private io.grpc.Server server;
-    protected ZooKeeper zooKeeper;
+    protected io.grpc.Server server;
+    protected ZookeeperCoordinator zooKeeper;
     private String ip;
     private int port;
 
@@ -50,8 +51,8 @@ public abstract class Server implements Watcher {
         }
     }
 
-    protected void connectZooKeeper(String address) throws IOException {
-        zooKeeper = new ZooKeeper(address, 15000, this);
+    protected void connectZooKeeper(String address) {
+        zooKeeper = new ZookeeperCoordinator(address, this);
     }
 
     public String getAddress() {

@@ -29,6 +29,12 @@ service DataServices {
   rpc MigrateTo (MigrateRequest) returns (MigrateResponse) {}
   rpc TransferDataFrom (TransferDataFromRequest) returns (TransferDataFromResponse) {}
   rpc TransferDataTo (TransferDataToRequest) returns (TransferDataToResponse) {}
+
+  rpc Sync (SyncRequest) returns (SyncResponse) {}
+  rpc TryPut (TryPutRequest) returns (PutResponse) {}
+  rpc TryDelete (TryDeleteRequest) returns (DeleteResponse) {}
+  rpc Commit (SyncSeq) returns (SyncSeq) {}
+  rpc RollBack (SyncSeq) returns (SyncSeq) {}
 }
 
 message PutRequest {
@@ -89,4 +95,33 @@ message TransferDataToRequest {
 
 message TransferDataToResponse {
   int32 status = 1;
+}
+
+message Slot {
+  int32 slot_id = 1;
+  repeated Entry entries =2;
+}
+
+message TryPutRequest {
+  string key = 1;
+  string value = 2;
+  int32 sync_seq = 3;
+}
+
+message TryDeleteRequest {
+  string key = 1;
+  string value = 2;
+  int32 sync_seq = 3;
+}
+
+message SyncRequest {
+  int32 status = 1;
+}
+
+message SyncResponse {
+  repeated Slot slots = 1;
+}
+
+message SyncSeq {
+  int32 sync_seq = 1;
 }

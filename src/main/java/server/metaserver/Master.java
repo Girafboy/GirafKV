@@ -1,15 +1,5 @@
 package server.metaserver;
 
-import grpc.data.DataServicesGrpc;
-import grpc.data.DeleteResponse;
-import grpc.data.GetRequest;
-import grpc.data.GetResponse;
-import grpc.locator.LocateRequest;
-import grpc.locator.LocateResponse;
-import grpc.locator.LocatorServicesGrpc;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.StatusRuntimeException;
-import io.grpc.stub.StreamObserver;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -19,59 +9,54 @@ import server.Server;
 import util.*;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Master extends Server {
     private static final Logger logger = Logger.getLogger(Master.class.getName());
-    private ConcurrentHashMap<String, String> workers = new ConcurrentHashMap<>();
+    private final GroupManager groupManager = new GroupManager();
+    private final HashSet<String> workers = new HashSet<>();
     private final Partition taskPartition = new ConsistencyHashPartition();
 
     public Master(String ip, int port) {
         super(ip, port);
     }
 
-    private void bootstrap() throws KeeperException, InterruptedException {
-        Stat stat = zooKeeper.exists("/workers", false);
-        if(stat == null){
-            zooKeeper.create("/workers", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    private void register() {
+        zooKeeper.checkAndCreate("/secondary");
+        for (String child :
+                zooKeeper.getChildren("/secondary", false)) {
+            zooKeeper.delete("/secondary/" + child);
         }
-        updateWorkers(zooKeeper.getChildren("/workers", true));
+
+        updateWorkers();
+        zooKeeper.create("/master", getAddress(), CreateMode.EPHEMERAL);
     }
 
-    private void updateWorkers(List<String> childrenList) throws KeeperException, InterruptedException {
-        ConcurrentHashMap<String, String> newWorkers = new ConcurrentHashMap<>();
-        for (String child :
-                childrenList) {
-            if(workers.contains(child)){
-                newWorkers.put(child, workers.get(child));
-            } else {
-                newWorkers.put(child, new String(zooKeeper.getData("/workers/" + child, false, null)));
+    private void updateWorkers() {
+        for (String groupId :
+                zooKeeper.getChildren("/secondary", true)) {
+            for (Map.Entry<String, String> entry :
+                    zooKeeper.getChildrenValues("/secondary/" + groupId, true).entrySet()) {
+                groupManager.addWorker(entry.getKey(), entry.getValue(), Integer.parseInt(groupId));
+                if (entry.getKey().contains("primary")) {
+                    groupManager.upgradeAsPrimary(Integer.parseInt(groupId), entry.getKey());
+                    if (!taskPartition.containGroupId(Integer.parseInt(groupId))) {
+                        // 新增的Group
+                        taskPartition.addPartition(
+                                zooKeeper.getData("/secondary/" + groupId + "/primary" + groupId, false, null),
+                                Integer.parseInt(groupId)
+                        );
+                    } else {
+                        // 修改Group的Partition
+                        taskPartition.changePartition(entry.getValue(), Integer.parseInt(groupId));
+                    }
+                }
             }
         }
-
-        // 重新划分数据
-        // 新增的Worker
-        HashSet<String> addedWorkers = new HashSet<>(newWorkers.values());
-        addedWorkers.removeAll(workers.values());
-        for (String worker :
-                addedWorkers) {
-            taskPartition.addPartition(worker);
-        }
-        // 删除的Worker
-        HashSet<String> removedWorkers = new HashSet<>(workers.values());
-        removedWorkers.removeAll(newWorkers.values());
-        for (String worker :
-                addedWorkers) {
-            taskPartition.removePartition(worker);
-        }
-
-        workers = newWorkers;
     }
 
     public static void main(String[] args) throws IOException, InterruptedException, KeeperException {
@@ -82,7 +67,7 @@ public class Master extends Server {
         server.start(new LocatorServicesImpl(server.taskPartition));
         logger.info("RPC Server started, listening on " + 23333);
 
-        server.bootstrap();
+        server.register();
         server.blockUntilShutdown();
     }
 
@@ -105,35 +90,9 @@ public class Master extends Server {
                     break;
             }
         } else {
-            if ("/workers".equals(watchedEvent.getPath())
-                    && watchedEvent.getType() == Event.EventType.NodeChildrenChanged) {
-                try {
-                    updateWorkers(zooKeeper.getChildren("/workers", true));
-                } catch (KeeperException | InterruptedException e) {
-                    e.printStackTrace();
-                }
+            if (watchedEvent.getPath() != null && watchedEvent.getPath().contains("/secondary")) {
+                updateWorkers();
             }
-        }
-    }
-
-    static class LocatorServicesImpl extends LocatorServicesGrpc.LocatorServicesImplBase {
-        private final Partition taskPartition;
-
-        public LocatorServicesImpl(Partition taskPartition) {
-            this.taskPartition = taskPartition;
-        }
-
-        @Override
-        public void locate(LocateRequest request, StreamObserver<LocateResponse> responseObserver) {
-            LocateResponse response;
-            String address = taskPartition.getPartition(new StringKey(request.getKey()));
-            if (address != null){
-                response = LocateResponse.newBuilder().setStatus(1).setAddress(address).build();
-            }else{
-                response = LocateResponse.newBuilder().setStatus(0).build();
-            }
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
         }
     }
 }

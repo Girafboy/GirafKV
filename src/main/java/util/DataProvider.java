@@ -1,11 +1,14 @@
 package util;
 
 import java.util.Collection;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DataProvider implements KVOps {
     private final ConcurrentHashMap<Integer, ConcurrentHashMap<Key, Value>> slotConcurrentHashMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, String> syncSeqCommandHashMap = new ConcurrentHashMap<>();
+    private AtomicInteger syncSeq = new AtomicInteger();
 
     public void addSlot(Integer slotId) {
         if (!slotConcurrentHashMap.containsKey(slotId)){
@@ -34,6 +37,10 @@ public class DataProvider implements KVOps {
         }
     }
 
+    public Set<Integer> getSlots() {
+        return slotConcurrentHashMap.keySet();
+    }
+
     public ConcurrentHashMap<Key, Value> getSlotEntries(Integer slotId) {
         return slotConcurrentHashMap.get(slotId);
     }
@@ -56,5 +63,40 @@ public class DataProvider implements KVOps {
             return false;
         slotConcurrentHashMap.get(Partition.getSlotId(key)).remove(key);
         return true;
+    }
+
+    public Boolean tryPut(Key key, Value value, Integer syncSeq) {
+        syncSeqCommandHashMap.put(syncSeq, "put " + key.toString() + " " + value.toString());
+        return true;
+    }
+
+    public Boolean tryDelete(Key key, Integer syncSeq) {
+        syncSeqCommandHashMap.put(syncSeq, "delete " + key.toString());
+        return true;
+    }
+
+    public void commit(Integer syncSeq) {
+        while (this.syncSeq.get() < syncSeq) {
+            if (syncSeqCommandHashMap.containsKey(this.syncSeq.get() + 1)) {
+                String command = syncSeqCommandHashMap.remove(this.syncSeq.get() + 1);
+                String[] strings = command.split("\\s+");
+                switch (strings[0]) {
+                    case "put":
+                        put(new StringKey(strings[1]), new StringValue(strings[2]));
+                        getNextSyncSeq();
+                        break;
+                    case "delete":
+                        delete(new StringKey(strings[1]));
+                        getNextSyncSeq();
+                        break;
+                }
+            } else {
+                break;
+            }
+        }
+    }
+
+    public Integer getNextSyncSeq() {
+        return syncSeq.incrementAndGet();
     }
 }

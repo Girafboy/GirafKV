@@ -8,6 +8,7 @@ public interface Partition {
     }
 
     String getPartition(Key key);
-    Boolean addPartition(String address);
-    Boolean removePartition(String address);
+    Boolean addPartition(String address, Integer groupId);
+    Boolean changePartition(String address, Integer groupId);
+    Boolean containGroupId(Integer groupId);
 }

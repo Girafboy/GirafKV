@@ -43,6 +43,10 @@ zookeeper不是一个用来做高并发高性能的数据库，zookeeper一般�
 - Zookeeper服务发现：https://crossoverjie.top/2018/08/27/distributed/distributed-discovery-zk/
 - 一致性哈希数据划分：https://zhuanlan.zhihu.com/p/37924185
 - 数据迁移：https://cloud.tencent.com/developer/news/180072
+- MIT 6.824课程主页：https://pdos.csail.mit.edu/6.824/index.html
+- MIT 6.824：https://zhuanlan.zhihu.com/p/51049133
+- 备份同步：https://www.cnblogs.com/glacierh/p/5734200.html
+- redis主从复制：http://daoluan.net/redis-source-notes/redis-nei-gong-xin-fa/zhu-cong-fu-zhi.html
 
 - 设计
     - 可用性：client加缓存
@@ -61,3 +65,14 @@ zookeeper不是一个用来做高并发高性能的数据库，zookeeper一般�
     9. 冷启动如何分配数据？单独发送rpc要求直接负责所有slot，不需要问其他人获取数据
     10. rpc通道连接多久？client与master是长连接，其他连接完成后立即关闭
     11. zookeeper连接与rpc服务启动的前后顺序？先启动rpc服务，再连接向zookeeper报告自己启动完成
+    12. 为什么不采用swift ring的异构备份？考虑到写少读多的情况，同构备份更简单。
+    13. 是否持久化？//TODO
+    14. 备份节点如何分配？每个主节点可以有不同的备节点，依照读取的热度来分配
+    15. 主备如何同步？一对多同步，异步同步（强一致性的提供由Client保证，转发给主节点；更高的可用性会牺牲一定的一致性）
+    16. 如何管理备份节点？指定工作组
+    17. 是否支持缩容？暂不支持，假设一个组中的节点不可能同时挂掉，所以该功能不重要
+    18. 如何同步？刚启动时全量同步，之后增量同步，先转发，如果都成功就成功；如果不成功，都回滚//TODO 两阶段提交 一半写入成功就返回？（没有返回结果之前，读到什么时不确定的）
+    19. Primary如何知道其他Secondary的地址？
+    20. 负载均衡？master对读进行roundrobin，写发给primary
+    21. 启动流程？必须先竞选才能启动RPC服务，必须先准备好再注册自己
+    22. 为什么不用读写锁？在整个数据节点粒度上的大读写锁，导致对并发的支持很差。所以使用原子计数器syncSeq定位各个操作的顺序。
