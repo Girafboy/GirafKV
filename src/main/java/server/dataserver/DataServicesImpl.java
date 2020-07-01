@@ -5,9 +5,11 @@ import io.grpc.stub.StreamObserver;
 import util.*;
 
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 class DataServicesImpl extends DataServicesGrpc.DataServicesImplBase {
     protected final DataProvider dataProvider;
+    ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
     public DataServicesImpl(DataProvider dataProvider) {
         this.dataProvider = dataProvider;
@@ -15,6 +17,7 @@ class DataServicesImpl extends DataServicesGrpc.DataServicesImplBase {
 
     @Override
     public void put(PutRequest request, StreamObserver<PutResponse> responseObserver) {
+        readWriteLock.writeLock().lock();
         PutResponse response;
         if (dataProvider.put(new StringKey(request.getKey()), new StringValue(request.getValue()))){
             response = PutResponse.newBuilder().setStatus(1).build();
@@ -23,10 +26,12 @@ class DataServicesImpl extends DataServicesGrpc.DataServicesImplBase {
         }
         responseObserver.onNext(response);
         responseObserver.onCompleted();
+        readWriteLock.writeLock().unlock();
     }
 
     @Override
     public void get(GetRequest request, StreamObserver<GetResponse> responseObserver) {
+        readWriteLock.readLock().lock();
         Value value = dataProvider.get(new StringKey(request.getKey()));
         GetResponse response;
         if (value != null){
@@ -36,10 +41,12 @@ class DataServicesImpl extends DataServicesGrpc.DataServicesImplBase {
         }
         responseObserver.onNext(response);
         responseObserver.onCompleted();
+        readWriteLock.readLock().unlock();
     }
 
     @Override
     public void delete(DeleteRequest request, StreamObserver<DeleteResponse> responseObserver) {
+        readWriteLock.writeLock().lock();
         DeleteResponse response;
         if (dataProvider.delete(new StringKey(request.getKey()))){
             response = DeleteResponse.newBuilder().setStatus(1).build();
@@ -48,6 +55,7 @@ class DataServicesImpl extends DataServicesGrpc.DataServicesImplBase {
         }
         responseObserver.onNext(response);
         responseObserver.onCompleted();
+        readWriteLock.writeLock().unlock();
     }
 
     @Override

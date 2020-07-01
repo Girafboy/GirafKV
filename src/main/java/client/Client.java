@@ -28,18 +28,14 @@ public class Client implements KVOps {
     }
 
     public static void main(String[] args) throws Exception {
-        String target = "127.0.0.1:23333";
-        if (args.length > 0) {
-            if ("--help".equals(args[0])) {
-                System.err.println("Usage: [name [target]]");
-                System.err.println("");
-                System.err.println("  target  The server to connect to. Defaults to " + target);
-                System.exit(1);
-            }
+        if (args.length != 2) {
+            System.err.println("Usage: ip port");
+            System.exit(1);
         }
-        if (args.length > 1) {
-            target = args[1];
-        }
+        final String ip = args[0];
+        final int port = Integer.parseInt(args[1]);
+
+        String target = ip + ":" + port;
 
         ManagedChannel channel = ManagedChannelBuilder.forTarget(target)
                 .usePlaintext()

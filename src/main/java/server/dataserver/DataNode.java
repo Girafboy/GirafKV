@@ -97,14 +97,15 @@ public class DataNode extends Server {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException, KeeperException {
-        if (args.length != 2) {
-            System.err.println("Usage: ip port");
+        if (args.length != 3) {
+            System.err.println("Usage: ip port groupId");
             System.exit(1);
         }
         final String ip = args[0];
         final int port = Integer.parseInt(args[1]);
+        final int groupId = Integer.parseInt(args[2]);
 
-        final DataNode server = new DataNode(ip, 50053, 1);
+        final DataNode server = new DataNode(ip, port, groupId);
         server.connectZooKeeper("127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183");
         logger.info("ZooKeeper connected");
 

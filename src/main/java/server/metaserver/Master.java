@@ -61,12 +61,19 @@ public class Master extends Server {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException, KeeperException {
-        final Master server = new Master("127.0.0.1", 23333);
+        if (args.length != 2) {
+            System.err.println("Usage: ip port");
+            System.exit(1);
+        }
+        final String ip = args[0];
+        final int port = Integer.parseInt(args[1]);
+
+        final Master server = new Master(ip, port);
         server.connectZooKeeper("127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183");
         logger.info("ZooKeeper connected");
 
         server.start(new LocatorServicesImpl(server.taskPartition, server.groupManager));
-        logger.info("RPC Server started, listening on " + 23333);
+        logger.info("RPC Server started, listening on " + server.getAddress());
 
         server.register();
         server.blockUntilShutdown();
