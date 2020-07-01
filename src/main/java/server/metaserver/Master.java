@@ -9,6 +9,7 @@ import server.Server;
 import util.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,11 +30,30 @@ public class Master extends Server {
         zooKeeper.checkAndCreate("/secondary");
         for (String child :
                 zooKeeper.getChildren("/secondary", false)) {
-            zooKeeper.delete("/secondary/" + child);
+            if (zooKeeper.getChildren("/secondary/" + child, false).isEmpty()){
+                zooKeeper.delete("/secondary/" + child);
+            }
         }
 
         updateWorkers();
-        zooKeeper.create("/master", getAddress(), CreateMode.EPHEMERAL);
+
+        while (true) {
+            // 读取竞选结果
+            if (zooKeeper.create("/master", getAddress(), CreateMode.EPHEMERAL, false).equals("/master")){
+                logger.info("I am Master!");
+                break;
+            } else {
+                logger.info("I am Slave!");
+                zooKeeper.exists("/master", true);
+                synchronized (this) {
+                    try {
+                        wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
     }
 
     private void updateWorkers() {
@@ -72,10 +92,11 @@ public class Master extends Server {
         server.connectZooKeeper("127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183");
         logger.info("ZooKeeper connected");
 
+        server.register();
+
         server.start(new LocatorServicesImpl(server.taskPartition, server.groupManager));
         logger.info("RPC Server started, listening on " + server.getAddress());
 
-        server.register();
         server.blockUntilShutdown();
     }
 
@@ -100,6 +121,10 @@ public class Master extends Server {
         } else {
             if (watchedEvent.getPath() != null && watchedEvent.getPath().contains("/secondary")) {
                 updateWorkers();
+            } else if ("/master".equals(watchedEvent.getPath())){
+                synchronized (this) {
+                    notify();
+                }
             }
         }
     }

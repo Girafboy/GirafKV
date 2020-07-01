@@ -48,6 +48,8 @@ zookeeper不是一个用来做高并发高性能的数据库，zookeeper一般�
 - 备份同步：https://www.cnblogs.com/glacierh/p/5734200.html
 - redis主从复制：http://daoluan.net/redis-source-notes/redis-nei-gong-xin-fa/zhu-cong-fu-zhi.html
 - 2PC: https://juejin.im/post/5ea1234be51d4547106e1d13
+- 分布式一致性协议：https://matt33.com/2018/07/08/distribute-system-consistency-protocol/
+- 主从同步：https://blog.csdn.net/tiankong_/article/details/78008736
 
 - 设计
     - 可用性：client加缓存
@@ -78,3 +80,5 @@ zookeeper不是一个用来做高并发高性能的数据库，zookeeper一般�
     21. 启动流程？必须先竞选才能启动RPC服务，必须先准备好再注册自己
     22. 为什么不用读写锁？在整个数据节点粒度上的大读写锁，导致对并发的支持很差。所以使用原子计数器syncSeq定位各个操作的顺序。
     23. 为什么不直接用2PC？因为不能完全保证一致，而且事务独占影响性能。
+    24. zookeeper有上次运行的残留znode怎么办？没办法，启动前先删一下。
+    25. master应当使用知名端口，挂了怎么办？其他Slave监听/master，发现问题后在原知名端口重启服务。

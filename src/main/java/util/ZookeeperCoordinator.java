@@ -14,7 +14,7 @@ public class ZookeeperCoordinator implements Coordinator {
 
     public ZookeeperCoordinator(String address, Watcher watcher) {
         try {
-            zooKeeper = new ZooKeeper(address, 10000, watcher);
+            zooKeeper = new ZooKeeper(address, 3000, watcher);
         } catch (IOException e) {
             e.printStackTrace();
         }
