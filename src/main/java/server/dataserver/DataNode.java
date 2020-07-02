@@ -114,7 +114,7 @@ public class DataNode extends Server {
         server.zooKeeper.checkAndCreate("/secondary");
         server.zooKeeper.checkAndCreate("/secondary/" + server.groupId);
 
-        server.start(new PrimarySecondaryServices(server.dataProvider, server.addressManager));
+        server.start(new PrimarySecondaryServices(server.dataProvider, server.addressManager, server.groupId));
         logger.info("Primary RPC Server started, listening on " + server.getAddress());
 
         // 1. 竞选Primary

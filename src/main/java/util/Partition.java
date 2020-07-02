@@ -4,7 +4,7 @@ public interface Partition {
     int numOfVirtualNode = 1024;
 
     public static int getSlotId(Key key) {
-        return key.hashCode() % numOfVirtualNode;
+        return Math.abs(key.hashCode() % numOfVirtualNode);
     }
 
     Integer getPartition(Key key);

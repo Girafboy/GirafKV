@@ -35,6 +35,7 @@ service DataServices {
   rpc TryDelete (TryDeleteRequest) returns (DeleteResponse) {}
   rpc Commit (SyncSeq) returns (SyncSeq) {}
   rpc RollBack (SyncSeq) returns (SyncSeq) {}
+  rpc CheckLog (SyncSeq) returns (SyncSeq) {}
 }
 
 message PutRequest {

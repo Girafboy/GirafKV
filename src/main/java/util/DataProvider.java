@@ -75,24 +75,30 @@ public class DataProvider implements KVOps {
         return true;
     }
 
+    public Set<Integer> allBufferSyncSeq(Integer syncSeq) {
+        return syncSeqCommandHashMap.keySet();
+    }
+
     public void commit(Integer syncSeq) {
-        while (this.syncSeq.get() < syncSeq) {
-            if (syncSeqCommandHashMap.containsKey(this.syncSeq.get() + 1)) {
-                String command = syncSeqCommandHashMap.remove(this.syncSeq.get() + 1);
-                String[] strings = command.split("\\s+");
-                switch (strings[0]) {
-                    case "put":
-                        put(new StringKey(strings[1]), new StringValue(strings[2]));
-                        getNextSyncSeq();
-                        break;
-                    case "delete":
-                        delete(new StringKey(strings[1]));
-                        getNextSyncSeq();
-                        break;
-                }
-            } else {
-                break;
+        if (syncSeqCommandHashMap.containsKey(syncSeq)) {
+            String command = syncSeqCommandHashMap.remove(syncSeq);
+            String[] strings = command.split("\\s+");
+            switch (strings[0]) {
+                case "put":
+                    put(new StringKey(strings[1]), new StringValue(strings[2]));
+                    getNextSyncSeq();
+                    break;
+                case "delete":
+                    delete(new StringKey(strings[1]));
+                    getNextSyncSeq();
+                    break;
             }
+        }
+    }
+
+    public void rollback(int syncSeq) {
+        if (syncSeqCommandHashMap.containsKey(syncSeq)) {
+            syncSeqCommandHashMap.remove(syncSeq);
         }
     }
 
