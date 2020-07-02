@@ -2,14 +2,13 @@ package util;
 
 import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.Stat;
-import server.Server;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class ZookeeperCoordinator implements Coordinator {
+public class ZookeeperCoordinator {
     public ZooKeeper zooKeeper;
 
     public ZookeeperCoordinator(String address, Watcher watcher) {

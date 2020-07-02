@@ -4,7 +4,7 @@ import grpc.locator.LocateRequest;
 import grpc.locator.LocateResponse;
 import grpc.locator.LocatorServicesGrpc;
 import io.grpc.stub.StreamObserver;
-import util.Partition;
+import partition.Partition;
 import util.StringKey;
 
 class LocatorServicesImpl extends LocatorServicesGrpc.LocatorServicesImplBase {
